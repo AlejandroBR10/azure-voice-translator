@@ -47,3 +47,31 @@ export const speechToText = (filePath) => {
         );
     });
 };
+
+export const textToSpeech = (text) => {
+  return new Promise((resolve, reject) => {
+    const speechConfig = sdk.SpeechConfig.fromSubscription(
+      azureConfig.speechKey,
+      azureConfig.region
+    );
+
+    // Voz en inglés (puedes cambiar)
+    speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+
+    const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
+
+    synthesizer.speakTextAsync(
+      text,
+      (result) => {
+        if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+          // Convertir a buffer
+          const audioBuffer = Buffer.from(result.audioData);
+          resolve(audioBuffer);
+        } else {
+          reject("No se pudo generar audio");
+        }
+      },
+      (error) => reject(error)
+    );
+  });
+};
