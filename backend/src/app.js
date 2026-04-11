@@ -3,6 +3,8 @@ import cors from "cors";
 import translateRoutes from "./routes/translate.routes.js"
 import speechRoutes from "./routes/speech.routes.js"
 import ttsRoutes from "./routes/textToSpeech.routes.js";
+import flowRoutes from "./routes/flow.routes.js";
+
 
 
 
@@ -18,4 +20,6 @@ app.use("/api", translateRoutes);
 app.use("/api", speechRoutes);
 
 app.use("/api", ttsRoutes);
+app.use("/api", flowRoutes);
+
 export default app;
