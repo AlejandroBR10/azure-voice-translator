@@ -9,41 +9,29 @@ export const speechToText = (filePath) => {
       azureConfig.region
     );
 
-    speechConfig.setProperty(
-      sdk.PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs,
-      "15000"
-    );
-
     speechConfig.speechRecognitionLanguage = "es-MX";
 
-    const pushStream = sdk.AudioInputStream.createPushStream();
-    const audioBuffer = fs.readFileSync(filePath);
+    // --- CAMBIO AQUÍ ---
+    // En lugar de PushStream, pasamos directamente el archivo
+    const audioConfig = sdk.AudioConfig.fromWavFileInput(fs.readFileSync(filePath));
+    // O mejor aún, si tienes la ruta:
+    // const audioConfig = sdk.AudioConfig.fromWavFilePath(filePath);
 
-    pushStream.write(audioBuffer);
-    pushStream.close();
-
-    const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
-
-    const recognizer = new sdk.SpeechRecognizer(
-      speechConfig,
-      audioConfig
-    );
+    const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
 
     recognizer.recognizeOnceAsync(
       (result) => {
-        console.log("RESULT:", result);
-
-        recognizer.close(); // IMPORTANTE
-
+        recognizer.close();
         if (result.reason === sdk.ResultReason.RecognizedSpeech) {
           resolve(result.text);
+        } else if (result.reason === sdk.ResultReason.NoMatch) {
+          reject("No se reconoció ninguna palabra. Revisa el formato del audio.");
         } else {
-          reject("No se pudo reconocer voz");
+          reject("Error de reconocimiento: " + result.errorDetails);
         }
       },
       (err) => {
-        recognizer.close(); // IMPORTANTE
-        console.error("ERROR:", err);
+        recognizer.close();
         reject(err);
       }
     );
