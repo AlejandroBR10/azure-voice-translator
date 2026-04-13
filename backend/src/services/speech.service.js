@@ -3,49 +3,51 @@ import { azureConfig } from "../config/azure.config.js";
 import fs from "fs";
 
 export const speechToText = (filePath) => {
-    return new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
+    const speechConfig = sdk.SpeechConfig.fromSubscription(
+      azureConfig.speechKey,
+      azureConfig.region
+    );
 
-        const speechConfig = sdk.SpeechConfig.fromSubscription(
-            azureConfig.speechKey,
-            azureConfig.region
-        );
-        speechConfig.setProperty(
-            sdk.PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs,
-            "15000"
-        );
+    speechConfig.setProperty(
+      sdk.PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs,
+      "15000"
+    );
 
+    speechConfig.speechRecognitionLanguage = "es-MX";
 
-        speechConfig.speechRecognitionLanguage = "es-MX";
+    const pushStream = sdk.AudioInputStream.createPushStream();
+    const audioBuffer = fs.readFileSync(filePath);
 
-        const pushStream = sdk.AudioInputStream.createPushStream();
-        const audioBuffer = fs.readFileSync(filePath);
+    pushStream.write(audioBuffer);
+    pushStream.close();
 
-        pushStream.write(audioBuffer);
-        pushStream.close();
+    const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
 
-        const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
+    const recognizer = new sdk.SpeechRecognizer(
+      speechConfig,
+      audioConfig
+    );
 
-        const recognizer = new sdk.SpeechRecognizer(
-            speechConfig,
-            audioConfig
-        );
+    recognizer.recognizeOnceAsync(
+      (result) => {
+        console.log("RESULT:", result);
 
-        recognizer.recognizeOnceAsync(
-            (result) => {
-                console.log("RESULT:", result);
+        recognizer.close(); // IMPORTANTE
 
-                if (result.reason === sdk.ResultReason.RecognizedSpeech) {
-                    resolve(result.text);
-                } else {
-                    reject("No se pudo reconocer voz");
-                }
-            },
-            (err) => {
-                console.error("ERROR:", err);
-                reject(err);
-            }
-        );
-    });
+        if (result.reason === sdk.ResultReason.RecognizedSpeech) {
+          resolve(result.text);
+        } else {
+          reject("No se pudo reconocer voz");
+        }
+      },
+      (err) => {
+        recognizer.close(); // IMPORTANTE
+        console.error("ERROR:", err);
+        reject(err);
+      }
+    );
+  });
 };
 
 export const textToSpeech = (text) => {
@@ -55,7 +57,6 @@ export const textToSpeech = (text) => {
       azureConfig.region
     );
 
-    // Voz en inglés (puedes cambiar)
     speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
 
     const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
@@ -63,15 +64,19 @@ export const textToSpeech = (text) => {
     synthesizer.speakTextAsync(
       text,
       (result) => {
+        synthesizer.close(); // IMPORTANTE
+
         if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-          // Convertir a buffer
           const audioBuffer = Buffer.from(result.audioData);
           resolve(audioBuffer);
         } else {
           reject("No se pudo generar audio");
         }
       },
-      (error) => reject(error)
+      (error) => {
+        synthesizer.close(); // IMPORTANTE
+        reject(error);
+      }
     );
   });
 };

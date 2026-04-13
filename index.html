@@ -1,13 +1,43 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>azure-voice-translator</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="frontend/src/main.js"></script>
-  </body>
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Traductor de Voz</title>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Traductor de Voz</h1>
+
+    <!-- Seleccionar audio -->
+    <label class="upload">
+      Seleccionar audio
+      <input type="file" id="audioInput" accept="audio/*" hidden />
+    </label>
+
+    <!-- Selección de idioma -->
+    <select id="lang">
+      <option value="en">Inglés</option>
+      <option value="fr">Francés</option>
+      <option value="de">Alemán</option>
+    </select>
+
+    <!-- Botón -->
+    <button id="sendBtn">Traducir</button>
+
+    <!-- Loading -->
+    <p id="loading" style="display:none;">Procesando...</p>
+
+    <!-- Resultado -->
+    <div class="result">
+      <audio id="audioPlayer" controls></audio>
+    </div>
+  </div>
+
+  <!-- Script -->
+  <script type="module" src="/frontend/src/main.js"></script>
+</body>
+
 </html>

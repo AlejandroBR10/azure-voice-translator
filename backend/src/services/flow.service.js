@@ -2,14 +2,20 @@ import { speechToText, textToSpeech } from "./speech.service.js";
 import { translateText } from "./translator.service.js";
 
 export const fullFlow = async (filePath, targetLang) => {
-  // 1. voz → texto
+  console.log("1. Iniciando speechToText");
+
   const text = await speechToText(filePath);
+  console.log("Texto obtenido:", text);
 
-  // 2. texto → traducción
+  console.log("2. Iniciando translateText");
+
   const translated = await translateText(text, targetLang);
+  console.log("Texto traducido:", translated);
 
-  // 3. texto → voz
+  console.log("3. Iniciando textToSpeech");
+
   const audio = await textToSpeech(translated);
+  console.log("Audio generado");
 
   return {
     originalText: text,
