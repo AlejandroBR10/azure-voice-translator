@@ -1,24 +1,24 @@
+
+
 import { fullFlow } from "../services/flow.service.js";
 import fs from "fs";
 
 export const flowController = async (req, res) => {
   try {
-    console.log("REQ OK");
-
     const filePath = req.file.path;
-    console.log("Archivo:", filePath);
+    const { lang } = req.body;
 
-    // 🔥 prueba directa sin Azure
+    const result = await fullFlow(filePath, lang);
+
     fs.unlinkSync(filePath);
 
     res.set({
       "Content-Type": "audio/wav"
     });
 
-    res.send(Buffer.from("test"));
+    res.send(result.audio);
 
   } catch (error) {
-    console.error(error);
     res.status(500).json({ error: error.message });
   }
 };

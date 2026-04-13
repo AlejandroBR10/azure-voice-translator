@@ -36,6 +36,16 @@ btn.addEventListener("click", async () => {
     }
 
     const blob = await res.blob();
+    // Log para debug (Esto es clave)
+console.log("Blob recibido:", blob.size, "bytes", "Tipo:", blob.type);
+
+if (blob.size === 0) {
+    console.error("El servidor envió un archivo vacío");
+    return;
+}
+
+// Forzamos el tipo a audio/wav
+const audioBlob = new Blob([blob], { type: 'audio/wav' });
     const audioUrl = URL.createObjectURL(blob);
 
     audioPlayer.src = audioUrl;
