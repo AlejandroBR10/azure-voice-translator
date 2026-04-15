@@ -26,3 +26,6 @@ dist-ssr
 node_modules/
 backend/.env
 .DS_Store"backend/.env" 
+backend/uploads
+backend/uploads/**
+!backend/uploads/.gitkeep
