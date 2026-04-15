@@ -3,75 +3,144 @@ import { azureConfig } from "../config/azure.config.js";
 import fs from "fs";
 
 export const speechToText = (filePath) => {
-    return new Promise((resolve, reject) => {
+  return new Promise((resolve, reject) => {
+    try {
+      if (!fs.existsSync(filePath)) {
+        reject(new Error(`Archivo no encontrado: ${filePath}`));
+        return;
+      }
 
-        const speechConfig = sdk.SpeechConfig.fromSubscription(
-            azureConfig.speechKey,
-            azureConfig.region
-        );
-        speechConfig.setProperty(
-            sdk.PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs,
-            "15000"
-        );
+      const audioBuffer = fs.readFileSync(filePath);
+      console.log("Buffer tamaño:", audioBuffer.length);
 
+      if (audioBuffer.length < 44) {
+        reject(new Error("Archivo WAV muy pequeño (menor a 44 bytes header)"));
+        return;
+      }
 
-        speechConfig.speechRecognitionLanguage = "es-MX";
+      const riffHeader = audioBuffer.toString("ascii", 0, 4);
+      const waveHeader = audioBuffer.toString("ascii", 8, 12);
 
-        const pushStream = sdk.AudioInputStream.createPushStream();
-        const audioBuffer = fs.readFileSync(filePath);
+      console.log("RIFF:", riffHeader, "WAVE:", waveHeader);
 
-        pushStream.write(audioBuffer);
-        pushStream.close();
+      if (riffHeader !== "RIFF" || waveHeader !== "WAVE") {
+        reject(new Error("Archivo no es WAV válido"));
+        return;
+      }
 
-        const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
+      const speechConfig = sdk.SpeechConfig.fromSubscription(
+        azureConfig.speechKey,
+        azureConfig.region,
+      );
 
-        const recognizer = new sdk.SpeechRecognizer(
-            speechConfig,
-            audioConfig
-        );
+      speechConfig.speechRecognitionLanguage = "es-MX";
 
-        recognizer.recognizeOnceAsync(
-            (result) => {
-                console.log("RESULT:", result);
+      speechConfig.setProperty(
+        sdk.PropertyId.SpeechServiceConnection_InitialSilenceTimeoutMs,
+        "5000",
+      );
 
-                if (result.reason === sdk.ResultReason.RecognizedSpeech) {
-                    resolve(result.text);
-                } else {
-                    reject("No se pudo reconocer voz");
-                }
-            },
-            (err) => {
-                console.error("ERROR:", err);
-                reject(err);
-            }
-        );
-    });
+      speechConfig.setProperty(
+        sdk.PropertyId.SpeechServiceConnection_EndSilenceTimeoutMs,
+        "1000",
+      );
+
+      const pushStream = sdk.AudioInputStream.createPushStream();
+      const chunkSize = 4096;
+      let offset = 0;
+
+      while (offset < audioBuffer.length) {
+        const chunk = audioBuffer.slice(offset, offset + chunkSize);
+        pushStream.write(chunk);
+        offset += chunkSize;
+      }
+
+      pushStream.close();
+
+      const audioConfig = sdk.AudioConfig.fromStreamInput(pushStream);
+      const recognizer = new sdk.SpeechRecognizer(speechConfig, audioConfig);
+
+      recognizer.recognizeOnceAsync(
+        (result) => {
+          console.log("===== RESULTADO AZURE =====");
+          console.log("Reason:", result.reason);
+          console.log("ResultId:", result.resultId);
+
+          if (result.reason === sdk.ResultReason.RecognizedSpeech) {
+            console.log("Texto:", result.text);
+            resolve(result.text);
+          } else if (result.reason === sdk.ResultReason.NoMatch) {
+            console.log("No se reconoció texto");
+            reject(new Error("No se reconoció texto en el audio"));
+          } else if (result.reason === sdk.ResultReason.Canceled) {
+            const cancellation = sdk.CancellationDetails.fromResult(result);
+            console.log("Cancelado. Razón:", cancellation.reason);
+            console.log("Detalles:", cancellation.errorDetails);
+            reject(
+              new Error(
+                `Cancelado: ${cancellation.errorDetails || cancellation.reason}`,
+              ),
+            );
+          }
+        },
+        (error) => {
+          console.error("Error en reconocimiento:", error);
+          reject(error);
+        },
+      );
+    } catch (error) {
+      console.error("Error en speechToText:", error.message);
+      reject(error);
+    }
+  });
 };
 
-export const textToSpeech = (text) => {
+export const textToSpeech = (text, voiceName = "en-US-JennyNeural") => {
   return new Promise((resolve, reject) => {
-    const speechConfig = sdk.SpeechConfig.fromSubscription(
-      azureConfig.speechKey,
-      azureConfig.region
-    );
+    try {
+      const speechConfig = sdk.SpeechConfig.fromSubscription(
+        azureConfig.speechKey,
+        azureConfig.region,
+      );
 
-    // Voz en inglés (puedes cambiar)
-    speechConfig.speechSynthesisVoiceName = "en-US-JennyNeural";
+      speechConfig.speechSynthesisVoiceName = voiceName;
 
-    const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
+      console.log("Configurando síntesis con voz:", voiceName);
 
-    synthesizer.speakTextAsync(
-      text,
-      (result) => {
-        if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
-          // Convertir a buffer
-          const audioBuffer = Buffer.from(result.audioData);
-          resolve(audioBuffer);
-        } else {
-          reject("No se pudo generar audio");
-        }
-      },
-      (error) => reject(error)
-    );
+      const synthesizer = new sdk.SpeechSynthesizer(speechConfig);
+
+      synthesizer.speakTextAsync(
+        text,
+        (result) => {
+          console.log("===== RESULTADO SINTESIS =====");
+          console.log("Reason:", result.reason);
+
+          if (result.reason === sdk.ResultReason.SynthesizingAudioCompleted) {
+            const audioBuffer = Buffer.from(result.audioData);
+            console.log(
+              "Audio generado correctamente - Tamaño:",
+              audioBuffer.length,
+            );
+            console.log("================================");
+            resolve(audioBuffer);
+          } else if (result.reason === sdk.ResultReason.Canceled) {
+            const cancellation = sdk.CancellationDetails.fromResult(result);
+            console.log("Síntesis cancelada:", cancellation.errorDetails);
+            reject(
+              new Error(`Síntesis cancelada: ${cancellation.errorDetails}`),
+            );
+          } else {
+            reject(new Error("No se pudo generar audio"));
+          }
+        },
+        (error) => {
+          console.error("Error en síntesis:", error);
+          reject(error);
+        },
+      );
+    } catch (error) {
+      console.error("Error en textToSpeech:", error.message);
+      reject(error);
+    }
   });
 };
