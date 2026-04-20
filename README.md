@@ -1,4 +1,4 @@
-"# Azure Voice Translator
+# Azure Voice Translator
 
 Una aplicación web moderna que convierte voz a texto, traduce contenido entre idiomas y sintetiza voz a partir de texto, utilizando los servicios cognitivos de Azure. Ofrece una experiencia fluida de traducción de voz en tiempo real con soporte para múltiples idiomas.
 
