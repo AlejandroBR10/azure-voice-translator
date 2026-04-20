@@ -8,6 +8,7 @@ Una aplicación web moderna que convierte voz a texto, traduce contenido entre i
 
 - [Descripción General](#descripción-general)
 - [Características](#características)
+- [Capturas de Pantalla](#capturas-de-pantalla)
 - [Arquitectura](#arquitectura)
 - [Servicios de Azure](#servicios-de-azure)
 - [Backend](#backend)
@@ -43,6 +44,14 @@ La arquitectura separa claramente las responsabilidades entre el backend (API RE
 - **🎯 Interfaz Moderna**: Diseño responsivo y amigable con el usuario
 - **⚡ Procesamiento en Tiempo Real**: Flujo completo de traducción sin demoras significativas
 - **🔐 CORS Habilitado**: Comunicación segura entre frontend y backend
+
+---
+
+## 📸 Capturas de Pantalla
+
+### Interfaz Inicial
+
+![Interfaz Inicial de la Aplicación](img/interfazInicial.png)
 
 ---
 
